@@ -31,6 +31,10 @@ public class Util {
 
     public static void getCameraSize(){
         Camera camera = Camera.open();
+        if(camera == null){
+            Log.d("TT", "camera is null");
+            return;
+        }
         Camera.Parameters parameters = camera.getParameters();
         List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
         //List<Camera.Size> supportedPictureSizes = parameters.getSupportedPictureSizes();

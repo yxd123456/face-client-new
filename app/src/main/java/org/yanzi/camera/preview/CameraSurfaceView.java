@@ -41,6 +41,7 @@ import com.huashi.otg.sdk.HsOtgService;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.List;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -83,6 +84,8 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 		camera = CameraInterface.getInstance().doOpenCamera(null, CameraInfo.CAMERA_FACING_FRONT);
 		camera.setDisplayOrientation(0);
 		camera.setPreviewCallback(this);
+
+
 	}
 
 	@Override
@@ -120,7 +123,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 	 * http://blog.csdn.net/xu_fu/article/details/23087951
 	 * Android自拍相机应用——图片的镜像翻转
      */
-	public Bitmap convertBmp(Bitmap bmp) {
+	public static Bitmap convertBmp(Bitmap bmp) {
 		int w = bmp.getWidth();
 		int h = bmp.getHeight();
 
@@ -153,28 +156,32 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 //				CameraActivity.faceView.setRects(CameraActivity.getRect(new Rect((test[1])*3/2, (test[2])*3/2, ((test[1]+test[3]))*3/2,((test[2]+test[4]))*3/2)));
 //			}
 			Log.d("Test", test[0]+"------------------"+ISSHOWINGMOVIE);
-			if(test[0] == 0){
-				if(num >= 100 && !ISSHOWINGMOVIE){
-					Log.d("Test", "zhi xing le a");
-					num = 0;
-					setAlpha(0);
-					Log.d("TT", getWidth()+"");
-					CameraActivity.sv_movie.setTranslationX(0f);
-					ISSHOWINGMOVIE = true;
-					CameraActivity.ll_panel.setVisibility(View.INVISIBLE);
-					CameraActivity.showMovie();
-				} else {
-					Log.d("Test", "num ' value is "+num);
-					num++;
-				}
-			} else if(test[0] == 1 && ISSHOWINGMOVIE){
-				Log.d("Test", "gai hui lai le********************************");
-				CameraActivity.stopMovie();
-				CameraActivity.sv_movie.setTranslationX(-1280f);
-				CameraActivity.ll_panel.setVisibility(View.VISIBLE);
-				setAlpha(1);
-				ISSHOWINGMOVIE = false;
-			}
+//			if(test[0] == 0){
+//				if(num >= 300 && !ISSHOWINGMOVIE){
+//					Log.d("Test", "zhi xing le a");
+//					num = 0;
+//					setAlpha(0);
+//					Log.d("TT", getWidth()+"");
+//					CameraActivity.sv_movie.setTranslationX(0f);
+//					ISSHOWINGMOVIE = true;
+//					CameraActivity.ll_panel.setVisibility(View.INVISIBLE);
+//					CameraActivity.showMovie();
+//				} else {
+//					Log.d("Test", "num ' value is "+num);
+//					num++;
+//				}
+//
+//
+//
+//
+////			} else if(test[0] == 1 && ISSHOWINGMOVIE){
+////				Log.d("Test", "gai hui lai le********************************");
+////				CameraActivity.stopMovie();
+////				CameraActivity.sv_movie.setTranslationX(-1280f);
+////				CameraActivity.ll_panel.setVisibility(View.VISIBLE);
+////				setAlpha(1);
+////				ISSHOWINGMOVIE = false;
+//			}
 		}
 
 //		image = new YuvImage(data, 17, 800, 600, null);

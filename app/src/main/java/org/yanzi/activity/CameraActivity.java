@@ -33,6 +33,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -44,8 +45,13 @@ import com.lidroid.xutils.DbUtils;
 import com.lidroid.xutils.exception.DbException;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
+import com.zhy.http.okhttp.request.RequestCall;
 
 import org.yanzi.camera.preview.CameraSurfaceView;
+import org.yanzi.grg.idcard.IDCardMsg;
+import org.yanzi.grg.idcard.IDCardRecognition;
+import org.yanzi.idcardusb.*;
+import org.yanzi.mode.ApkVersion;
 import org.yanzi.mode.FaceData;
 import org.yanzi.mode.Response;
 import org.yanzi.mode.Video;
@@ -56,7 +62,10 @@ import org.yanzi.util.NetUtil;
 import org.yanzi.util.SPUtil;
 import org.yanzi.util.SoundUtil;
 import org.yanzi.util.Util;
+import org.yanzi.util.VersionUtil;
+
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -74,7 +83,11 @@ import java.util.UUID;
 import okhttp3.Call;
 
 public class CameraActivity extends FragmentActivity{
-	private static final String DATA_URL = "http://192.168.0.111:8080/PictureUpdate/TestServlet";
+
+	private IDCardRecognition mIDCardRecognition;
+
+
+	private static final String DATA_URL = "http://192.168.111.111:8080/PictureUpdate/TestServlet";
 	static CameraSurfaceView surfaceView = null;//显示摄像头画面
 	float previewRate = -1f;
 	SoundUtil soundUtil;//播放音效
@@ -86,7 +99,6 @@ public class CameraActivity extends FragmentActivity{
 	volatile Bitmap idFaceBitmap = null;//身份证人脸位图
 	View testView, testView2;//两块面板
 
-	CameraActivity.MyConn conn;//读卡器相关类
 	HSInterface HSinterface;//读卡器接口
 	Intent service;//读卡器服务
 	String filepath = "";
@@ -128,7 +140,8 @@ public class CameraActivity extends FragmentActivity{
 					break;
 				case 0x1122:
 					data = (FaceData) msg.obj;
-					if(NetUtil.isNetworkConnected(CameraActivity.this)){
+					Log.d("TT", "is null? "+(data == null));
+					if(NetUtil.isNetworkConnected(CameraActivity.this)&&data != null){
 						pushData(data, new PushDataEnd() {
 							@Override
 							public void success(String response) {
@@ -141,7 +154,7 @@ public class CameraActivity extends FragmentActivity{
 									datas.add(data);
 									SPUtil.save(CameraActivity.this, datas);
 								}
-								Log.d("Test", response1.getCameraFaceImgsuccess()+" "
+								Log.d("TT", response1.getCameraFaceImgsuccess()+" "
 										+response1.getDatabaseSaveMark()+" "
 										+response1.getIdCardFaceImgsuccess());
 							}
@@ -150,10 +163,11 @@ public class CameraActivity extends FragmentActivity{
 							public void failure(Exception e) {
 								datas.add(data);
 								SPUtil.save(CameraActivity.this, datas);
+								Log.d("TT", "失败了");
 							}
 						});
 					}else {
-						Log.d("OFFLINE", data.getSimilar()+"=======");
+						Log.d("TT", "没网，先保存在本地");
 						datas.add(data);
 						SPUtil.save(CameraActivity.this, datas);
 					}
@@ -209,32 +223,23 @@ public class CameraActivity extends FragmentActivity{
 					tv_result.setTextColor(Color.GREEN);
 
 					tv_result.setText("比对结果：比对成功");
-					Log.d("TT", "a4");
 
 					soundUtil.play(1);
-					Log.d("TT", "a5");
 
 					tv_title.setText("请放上身份证进行比对");
-					Log.d("TT", "a6");
 
 					break;
 				case 0x126:
-					Log.d("TT", "b1");
 
 					tv_result.setVisibility(View.VISIBLE);
-					Log.d("TT", "b2");
 
 					tv_result.setTextColor(Color.RED);
-					Log.d("TT", "b3");
 
 					tv_result.setText("比对结果：比对失败");
-					Log.d("TT", "b4");
 
 					soundUtil.play(2);
-					Log.d("TT", "b5");
 
 					tv_title.setText("请放上身份证进行比对");
-					Log.d("TT", "b6");
 
 					break;
 			}
@@ -276,6 +281,7 @@ public class CameraActivity extends FragmentActivity{
 	private static MediaPlayer mediaPlayer;
 	private SurfaceHolder surfaceHolder;
 	public static View ll_panel;
+	private IDCardMsg information;
 
 	private static void play1(String path) {
 		try {
@@ -318,29 +324,181 @@ public class CameraActivity extends FragmentActivity{
 		area = new Rect(0, 0, 800, 600);
 		matrix = new Matrix();
 		matrix.postRotate(270);
-		initUI();
-		initData();
 
-		mediaPlayer = new MediaPlayer();
-		surfaceHolder = sv_movie.getHolder();
-		surfaceHolder.addCallback(new SurfaceHolder.Callback() {
+		mIDCardRecognition = new IDCardRecognition(CameraActivity.this, new IDCardRecognition.IDCardRecListener() {
 			@Override
-			public void surfaceCreated(SurfaceHolder holder) {
-				//play1("/data/data/org.yanzi.playcamera/files/data/test.mp4");
+			public void onResp(final IDCardMsg info) {
 
-			}
 
-			@Override
-			public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-				//play1("/data/data/org.yanzi.playcamera/files/data/test.mp4");
+//				String text = info.getName() + "\n"
+//						+ info.getIdCardNum() + "\n"
+//						+ info.getAddress() + "\n"
+//						+ info.getSex() + "\n";
 
-			}
+				new Thread(new Runnable() {
+					public long time_start;
 
-			@Override
-			public void surfaceDestroyed(SurfaceHolder holder) {
+					@Override
+					public void run() {
+						try{
+							Thread.currentThread().setPriority(10);
+							Log.d("Card", "info is null "+(info == null));
+							if(info == null){
+								return;
+							}
+//							if(mediaPlayer.isPlaying()){
+//								runOnUiThread(new Runnable() {
+//									@Override
+//									public void run() {
+//										CameraActivity.stopMovie();
+//										CameraActivity.sv_movie.setTranslationX(-1280f);
+//										CameraActivity.ll_panel.setVisibility(View.VISIBLE);
+//										surfaceView.setAlpha(1);
+//										CameraSurfaceView.ISSHOWINGMOVIE = false;
+//									}
+//								});
+//							}
+
+							//time_start = System.currentTimeMillis();
+
+							information = info;
+							idFaceBitmap = BitmapFactory.decodeByteArray(info.getPortrait(), 0, info.getPortrait().length);
+							handler.sendEmptyMessage(0x124);
+
+							faceData = surfaceView.saveScreenshot();
+							if(faceData != null){
+								image = new YuvImage(faceData, 17, 800, 600, null);
+								out = new ByteArrayOutputStream();
+								image.compressToJpeg(area, 100, out);
+								cameraFaceBitmap = Bitmap.createBitmap(BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size()), 0, 0,800, 600, matrix, true);
+								faceBitmap = util.rotateBitmap(cameraFaceBitmap, m);
+								handler.sendEmptyMessage(0x6661);
+							}
+
+							if(cameraFaceBitmap != null&&idFaceBitmap != null){
+								String uuid = UUID.randomUUID().toString();
+								onceName = uuid+".bmp";
+								Util.saveBitmap(faceBitmap, onceName);
+								Util.saveBitmap(idFaceBitmap, "b.bmp");//HsOtgService.ic.getIDCard()+".bmp"
+
+								int i = JniTool.faceFeatureExtractCamera(onceName);
+								int j = JniTool.faceFeatureExtractIDCard("b.bmp");
+
+								if(i != 0 && j != 0){
+									result = JniTool.faceFeatureCompare();
+								}
+								try{
+									if(i == 0 || j == 0){
+										handler.sendEmptyMessage(0x126);
+									}else {
+										if(coors == null){
+											if(result > 0.29f){
+												handler.sendEmptyMessage(0x125);
+												flag_result = true;
+											} else {
+												handler.sendEmptyMessage(0x126);
+												flag_result = true;
+											}
+										} else {
+											if(result > 0.29f && coors[0] != 0){
+												handler.sendEmptyMessage(0x125);
+												flag_result = true;
+											} else {
+												handler.sendEmptyMessage(0x126);
+												flag_result = true;
+											}
+										}
+									}
+								}catch (Exception e){
+									handler.sendEmptyMessage(0x126);
+								}
+							}
+						}catch (Exception e){
+							Log.d("Hope", "异常发生了"+e.getMessage());
+						}
+						long time_end = System.currentTimeMillis();
+
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								tv_name.setText("姓名："+info.getName());
+								tv_code.setText("身份证号："+info.getIdCardNum());
+							}
+						});
+						Log.d("TT", "此次读卡、显示照片、显示身份信息并进行识别的过程总共花费了"+(time_end-time_start)+"秒");
+
+						str = JniTool.faceFeatureExtractCamera1(onceName);
+						handler.sendEmptyMessage(0x666);
+
+						FaceData faceData = new FaceData();
+						faceData.setCameraFaceImg(Util.convertIconToString(faceBitmap));
+						faceData.setIdCardFaceImg(Util.convertIconToString(idFaceBitmap));
+						faceData.setName(information.getName());
+						faceData.setSex(information.getSexStr());
+						faceData.setPeople(information.getNationStr());
+						faceData.setDateOfBirth(information.getBirthDate().toString());
+						faceData.setAddr(information.getAddress());
+						faceData.setCode(information.getIdCardNum());
+						faceData.setDepartment(information.getSignOffice());
+						faceData.setStartDate(information.getUsefulStartDate().toString());
+						faceData.setEndDate(information.getUsefulEndDate().toString());
+						faceData.setSimilar(result);
+						if((faceData.getSimilar()+"").equals("NaN")){
+							faceData.setSimilar(0);
+						}
+						faceData.setCurrentTime(Util.getCurrTime());
+						faceData.setDeviceId(Util.getIMEI(CameraActivity.this));
+
+//						Message message = Message.obtain();
+//						message.obj = faceData;
+//						message.what = 0x1122;
+//						handler.sendMessage(message);
+
+						try {
+							dbUtils.save(faceData);
+						} catch (DbException e) {
+							e.printStackTrace();
+						}
+
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						handler.sendEmptyMessage(0x999);
+						//KyVoicePrint.beginRecord(Context context, Bundle bundle) ;
+					}
+
+				}).start();
+
 
 			}
 		});
+		mIDCardRecognition.start();
+
+		initUI();
+		initData();
+
+//		mediaPlayer = new MediaPlayer();
+//		surfaceHolder = sv_movie.getHolder();
+//		surfaceHolder.addCallback(new SurfaceHolder.Callback() {
+//			@Override
+//			public void surfaceCreated(SurfaceHolder holder) {
+//				//play1("/data/data/org.yanzi.playcamera/files/data/test.mp4");
+//
+//			}
+//
+//			@Override
+//			public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//				//play1("/data/data/org.yanzi.playcamera/files/data/test.mp4");
+//
+//			}
+//
+//			@Override
+//			public void surfaceDestroyed(SurfaceHolder holder) {
+//
+//			}
+//		});
 
 
 		testView.setVisibility(View.VISIBLE);
@@ -358,13 +516,12 @@ public class CameraActivity extends FragmentActivity{
 			e.printStackTrace();
 		}
 
-//		serviceDialog = new ProgressDialog(CameraActivity.this);
-//		serviceDialog.setTitle("后台服务启动中...");
-//		serviceDialog.setMax(100);
-//		serviceDialog.setCancelable(false);
-//		serviceDialog.setIndeterminate(false);
-//		serviceDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-//		serviceDialog.show();
+		serviceDialog = new ProgressDialog(CameraActivity.this);
+		serviceDialog.setTitle("准备中...");
+		serviceDialog.setCancelable(false);
+		serviceDialog.setIndeterminate(true);
+		serviceDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+		serviceDialog.show();
 
 		/**
 		 * 每隔三秒执行一次人脸比对
@@ -557,39 +714,109 @@ public class CameraActivity extends FragmentActivity{
 //			}
 //		}).start();
 
-		//用来检测更新的线程
-//		new Thread(new Runnable() {
-//			@Override
-//			public void run() {
-//				while (true){
-//					OkHttpUtils
-//							.get()
-//							.url("http://192.168.0.111:8080/PictureUpdate/VersionUpdataServlet")
-//							.build()
-//							.execute(new StringCallback() {
-//								@Override
-//								public void onError(Call call, Exception e, int id) {
-//									Log.d("Test", "请求失败 ");
-//								}
-//
-//								@Override
-//								public void onResponse(String response, int id) {
-//									Log.d("Test", "成功"+response);
-//									Gson gson = new Gson();
-//									ApkVersion version = gson.fromJson(response, ApkVersion.class);
-//									Log.d("TT", version.getAPKUrl()+"\n"
-//									+version.getImportantLevel()+"\n"
-//									+version.getVersionNumber());
-//								}
-//							});
-//					try {
-//						Thread.sleep(1000000);
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
-//				}
-//			}
-//		}).start();
+		//todo 用来检测更新的线程
+		Thread updateThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true){
+					if(NetUtil.isNetworkConnected(CameraActivity.this)){
+						OkHttpUtils
+								.get()
+								.url("http://192.168.111.111:8080/PictureUpdate/VersionUpdataServlet")
+								.build()
+								.execute(new StringCallback() {
+									@Override
+									public void onError(Call call, Exception e, int id) {
+										Log.d("Update", "请求失败 "+e.getMessage());
+									}
+
+									@Override
+									public void onResponse(String response, int id) {
+										Log.d("Update", "成功"+response);
+										Gson gson = new Gson();
+										ApkVersion version = gson.fromJson(response, ApkVersion.class);
+										Log.d("TT", version.getAPKUrl()+"\n"
+												+version.getImportantLevel()+"\n"
+												+version.getVersionNumber());
+
+										try {
+											Log.d("Update", "the current version is "+VersionUtil.getVersionName(CameraActivity.this));
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+
+										try {
+											if(!version.getVersionNumber().equals("1")){
+//												final ProgressDialog dialog = new ProgressDialog(CameraActivity.this);
+//												runOnUiThread(new Runnable() {
+//													@Override
+//													public void run() {
+//														dialog.show();
+//													}
+//												});
+
+												URL url = new URL("http://"+version.getAPKUrl());
+												Log.d("Update", "the addr is "+"http://"+version.getAPKUrl());
+												HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+												Log.d("Update", "1"+(conn == null));
+												assert conn != null;
+												conn.connect();
+												Log.d("Update", "2");
+
+												InputStream is = conn.getInputStream();
+												Log.d("Update", "3");
+
+												if(conn.getContentLength() > 0){
+													Log.d("Update", "start download!!!!!");
+													FileOutputStream fos = new FileOutputStream("/data/data/org.yanzi.playcamera/files/data/app_debug.apk");
+													byte[] bytes = new byte[1024];
+													int read = 0;
+													while ((read = is.read(bytes))!=-1){
+														fos.write(bytes, 0, read);
+													}
+													fos.flush();
+													fos.close();
+													Log.d("TT", "download apk success!!!");
+												}
+
+
+//												Intent intent = new Intent();
+//												//执行动作
+//												intent.setAction(Intent.ACTION_VIEW);
+//												//执行的数据类型
+//												intent.setDataAndType(Uri.fromFile(new File("/data/data/org.yanzi.playcamera/files/data/app_debug.apk")), "application/vnd.android.package-archive");
+//												startActivity(intent);
+											}
+										} catch (NullPointerException e) {
+											e.printStackTrace();
+											Log.d("Update", "1update is error "+e.getMessage());
+										} catch (FileNotFoundException e) {
+											e.printStackTrace();
+											Log.d("Update", "2update is error "+e.getMessage());
+
+										} catch (MalformedURLException e) {
+											e.printStackTrace();
+											Log.d("Update", "3update is error "+e.getMessage());
+
+										} catch (IOException e) {
+											e.printStackTrace();
+											Log.d("Update", "4update is error "+e.getMessage());
+
+										}
+
+									}
+								});
+					}
+					try {
+						Thread.sleep(1000000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+
+		//updateThread.start();
 
 		/**
 		 * 这个线程用来循环检测当前是否有网且是否存在未上传成功的数据，条件成立则为上传数据
@@ -640,25 +867,24 @@ public class CameraActivity extends FragmentActivity{
 //			}
 //		}).start();
 
-//		new Thread(new Runnable() {
-//			@Override
-//			public void run() {
-//				for (int i = 0; i < 100; i++) {
-//					serviceDialog.setProgress(i+1);
-//					try {
-//						Thread.sleep(100);
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
-//				}
-//				runOnUiThread(new Runnable() {
-//					@Override
-//					public void run() {
-//						serviceDialog.dismiss();
-//					}
-//				});
-//			}
-//		}).start();
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (int i = 0; i < 100; i++) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						serviceDialog.dismiss();
+					}
+				});
+			}
+		}).start();
 
 
 
@@ -677,18 +903,26 @@ public class CameraActivity extends FragmentActivity{
 			}
 			if(HSinterface != null){
 				if(HSinterface.Authenticate() == 1){
-					soundUtil.play(0);
+					if(mediaPlayer.isPlaying()){
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								CameraActivity.stopMovie();
+								CameraActivity.sv_movie.setTranslationX(-1280f);
+								CameraActivity.ll_panel.setVisibility(View.VISIBLE);
+								surfaceView.setAlpha(1);
+								CameraSurfaceView.ISSHOWINGMOVIE = false;
+							}
+						});
+					}
 					break;
 				}
-			}else{
-				service = new Intent(CameraActivity.this, HsOtgService.class);
-				conn = new CameraActivity.MyConn();
-				bindService(service, conn, Service.BIND_AUTO_CREATE);
 			}
 		}
 		ret1 = HSinterface.ReadCard();
 		if (ret1 == 1){//成功
 			try {
+				handler.sendEmptyMessage(0x155);
 				ret1 = HSinterface.Unpack();// 照片解码
 				handler.sendEmptyMessage(0x124);
 				fis = new FileInputStream(filepath + "/zp.bmp");
@@ -703,11 +937,11 @@ public class CameraActivity extends FragmentActivity{
 					image.compressToJpeg(area, 100, out);
 					cameraFaceBitmap = Bitmap.createBitmap(BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size()), 0, 0,800, 600, matrix, true);
 				}
-				Log.d("TT", "-----------"+System.currentTimeMillis());
 				if(cameraFaceBitmap != null){
 					faceBitmap = util.rotateBitmap(cameraFaceBitmap, m);
 					handler.sendEmptyMessage(0x6661);
 				}
+
 
 				try{
 					if(cameraFaceBitmap != null&&idFaceBitmap != null){
@@ -763,7 +997,6 @@ public class CameraActivity extends FragmentActivity{
 				}catch (Exception e){
 					Log.d("Hope", "异常发生了"+e.getMessage());
 				}
-				long time10 = System.currentTimeMillis();
 
 				String[] info = {HsOtgService.ic.getPeopleName(),
 						HsOtgService.ic.getIDCard()};
@@ -792,6 +1025,12 @@ public class CameraActivity extends FragmentActivity{
 				}
 				faceData.setCurrentTime(Util.getCurrTime());
 				faceData.setDeviceId(Util.getIMEI(CameraActivity.this));
+
+//				Message message = Message.obtain();
+//				message.obj = faceData;
+//				message.what = 0x1122;
+//				handler.sendMessage(message);
+
 				try {
 					dbUtils.save(faceData);
 				} catch (DbException e) {
@@ -804,7 +1043,7 @@ public class CameraActivity extends FragmentActivity{
 			}finally {
 				HsOtgService.ic = null;
 				try {
-					Thread.sleep(2000);
+					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -818,7 +1057,7 @@ public class CameraActivity extends FragmentActivity{
 	}
 
 	public void pushData(final FaceData data, final PushDataEnd end){
-		OkHttpUtils
+		RequestCall call = OkHttpUtils
 				.post()
 				.url(DATA_URL)
 				.addParams("name", data.getName())
@@ -835,8 +1074,25 @@ public class CameraActivity extends FragmentActivity{
 				.addParams("endDate", data.getEndDate())
 				.addParams("deviceId", data.getDeviceId())
 				.addParams("currentTime", data.getCurrentTime())
-				.build().connTimeOut(20000)
-				.execute(new StringCallback() {
+				.build();
+				Log.d("TT", "call is null? "+(call == null));
+
+				Log.d("TT", data.getName());
+				Log.d("TT", data.getSimilar()+"");
+				Log.d("TT",  data.getCode());
+				Log.d("TT", data.getCameraFaceImg());
+				Log.d("TT", data.getIdCardFaceImg());
+				Log.d("TT", data.getSex());
+				Log.d("TT", data.getPeople());
+				Log.d("TT", data.getDateOfBirth());
+				Log.d("TT",  data.getAddr());
+				Log.d("TT", data.getDepartment());
+				Log.d("TT", data.getStartDate());
+				Log.d("TT",  data.getEndDate());
+//				Log.d("TT", data.getDeviceId());
+				Log.d("TT", data.getCurrentTime());
+
+				StringCallback sc = new StringCallback() {
 					@Override
 					public void onError(Call call, Exception e, int id) {
 						Log.d("Test", "请求失败 ");
@@ -848,7 +1104,23 @@ public class CameraActivity extends FragmentActivity{
 						Log.d("Test", "成功"+response);
 						end.success(response);
 					}
-				});
+				};
+		try{
+			if (call != null) {
+				Log.d("TT", "zhi xing le a");
+				call.execute(sc);
+			}
+		}catch (final Exception e){
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					Toast.makeText(CameraActivity.this, "em~~, is NPE occured!!! the msg is " + e.getMessage(), Toast.LENGTH_LONG).show();
+				}
+			});
+		}
+
+
+
 	}
 
 	interface PushDataEnd{
@@ -859,7 +1131,7 @@ public class CameraActivity extends FragmentActivity{
 	private void initUI(){
 		m = new Matrix();
 		m.setRotate(90);
-		m.postScale(0.4f, 0.4f);
+		//m.postScale(-0.4f, 0.4f);
 		paint = new Paint();
 		paint.setColor(Color.GREEN);
 		paint.setStyle(Paint.Style.STROKE);//不填充
@@ -896,78 +1168,30 @@ public class CameraActivity extends FragmentActivity{
 	}
 
 	private void initData() {
+
+
 		util = new Util();
 		sdf = new SimpleDateFormat("yyyy年MM月dd日 hh:mm:ss");
 		soundUtil = new SoundUtil(this, R.raw.start, R.raw.success, R.raw.failure);
 		dbUtils = DbUtils.create(this);
-		client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
-		filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/wltlib";// 授权目录
-		service = new Intent(CameraActivity.this, HsOtgService.class);
-		conn = new CameraActivity.MyConn();
-		bindService(service, conn, Service.BIND_AUTO_CREATE);
+
+
+
 	}
 	@Override
 	public void onStart() {
 		super.onStart();
-		client.connect();
-		Action viewAction = Action.newAction(
-				Action.TYPE_VIEW, // TODO: choose an action type.
-				"Main Page", // TODO: Define a title for the content shown.
-				Uri.parse("http://host/path"),
-				Uri.parse("android-app://org.yanzi.playcamera/http/host/path")
-		);
-		AppIndex.AppIndexApi.start(client, viewAction);
 	}
 	@Override
 	public void onStop() {
 		super.onStop();
-		Action viewAction = Action.newAction(
-				Action.TYPE_VIEW, // TODO: choose an action type.
-				"Main Page", // TODO: Define a title for the content shown.
-				Uri.parse("http://host/path"),
-				Uri.parse("android-app://org.yanzi.playcamera/http/host/path")
-		);
-		AppIndex.AppIndexApi.end(client, viewAction);
-		client.disconnect();
 	}
 
 	@Override
 	protected void onDestroy() {
+		mIDCardRecognition.close();
 		super.onDestroy();
-		Log.d("TT", "onDestroy");
-		//if(HSinterface != null)
-		//HSinterface.unInit();
-		//if(conn != null)
-		//unbindService(conn);
-//		JniTool.free();
-	}
-	class MyConn implements ServiceConnection {
-
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service) {
-			HSinterface = (HSInterface) service;
-			int i = 2;
-			while (i > 0) {
-				i--;
-				int ret = HSinterface.init();
-				if (ret == 1) {
-					i = 0;
-				} else {
-					try {
-						Thread.sleep(200);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					continue;
-				}
-			}
-		}
-
-		@Override
-		public void onServiceDisconnected(ComponentName name) {
-			conn = null;
-			HSinterface = null;
-		}
+		JniTool.free();
 	}
 
 }

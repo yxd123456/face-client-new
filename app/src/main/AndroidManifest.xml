@@ -7,17 +7,29 @@
     <uses-sdk
         android:minSdkVersion="14"
         android:targetSdkVersion="24" />
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
+
+    <uses-feature android:name="android.hardware.usb.host" />
+
     <!-- 增加文件存储和访问摄像头的权限 -->
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <uses-feature android:name="android.hardware.camera" />
+
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <uses-feature android:name="android.hardware.usb.host" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
@@ -26,16 +38,16 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
 
     <application
         android:name="org.yanzi.activity.MyApplication"
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher_icon"
+        android:icon="@drawable/face1"
         android:label="@string/app_name">
         <activity
             android:name="org.yanzi.activity.CameraActivity"
-            android:label="@string/app_name"
+            android:label="Face"
             android:screenOrientation="landscape"
             android:supportsRtl="true"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
@@ -45,15 +57,16 @@
             android:name="com.huashi.otg.sdk.HsOtgService"
             android:enabled="true"
             android:exported="true" />
+
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
         <activity android:name="org.yanzi.activity.SoundActivity" />
         <activity
-            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"
             android:name="org.yanzi.activity.MeidaActivity"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen" />
         <activity
             android:name="org.yanzi.activity.NativeActivity"
             android:screenOrientation="landscape"
@@ -70,17 +83,21 @@
         <activity
             android:name="org.yanzi.activity.StartActivity"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"
-            >
+            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.HOME" />
             </intent-filter>
         </activity>
         <activity android:name="org.yanzi.activity.DrawRectActivity" />
-        <activity android:name="org.yanzi.activity.BitmapActivity"/>
-        <activity android:name="org.yanzi.activity.HttpApplication">
+        <activity android:name="org.yanzi.activity.BitmapActivity" />
+        <activity android:name="org.yanzi.activity.HttpApplication"></activity>
+        <activity
+            android:name="org.yanzi.idcardusb.MainActivity"
+            android:theme="@android:style/Theme.Light.NoTitleBar"></activity>
+        <activity android:name="org.yanzi.activity.ApkUpdateActivity">
 
         </activity>
     </application>
