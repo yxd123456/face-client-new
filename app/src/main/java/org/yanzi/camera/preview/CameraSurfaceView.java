@@ -5,6 +5,7 @@ import org.yanzi.activity.HttpApplication;
 import org.yanzi.activity.MainActivity;
 import org.yanzi.activity.MeidaActivity;
 import org.yanzi.camera.CameraInterface;
+import org.yanzi.constant.Constant;
 import org.yanzi.playcamera.R;
 import org.yanzi.util.JniTool;
 import org.yanzi.util.Util;
@@ -60,8 +61,10 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 	Paint paint;
     private Rect area;
 	public static boolean ISSHOWINGMOVIE = false;
+	public static Thread movieThread;
 
-	public CameraSurfaceView(Context context, AttributeSet attrs) {
+
+	public CameraSurfaceView(final Context context, AttributeSet attrs) {
 		super(context, attrs);
 		// TODO Auto-generated constructor stub
 		mContext = context;
@@ -71,9 +74,33 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 		mSurfaceHolder.setFormat(PixelFormat.TRANSPARENT);//translucent��͸�� transparent͸��
 		mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		mSurfaceHolder.addCallback(this);
-        area = new Rect(0, 0, 800, 600);
+        area = new Rect(0, 0, Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         matrix = new Matrix();
         matrix.postRotate(270);
+		if(movieThread == null){
+			movieThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						for (int i = 0; i < 60; i++) {
+							Log.d("TT", "还有"+(60-i)+"s");
+							Thread.sleep(1000);
+						}
+						CameraActivity.sv_movie.setTranslationX(0f);
+						ISSHOWINGMOVIE = true;
+						((Activity)context).runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								CameraActivity.ll_panel.setVisibility(View.INVISIBLE);
+							}
+						});
+						CameraActivity.showMovie();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+		}
     }
 
 
@@ -81,10 +108,19 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 	public void surfaceCreated(final SurfaceHolder holder) {
 		// TODO Auto-generated method stub
 		Log.i(TAG, "surfaceCreated...");
-		camera = CameraInterface.getInstance().doOpenCamera(null, CameraInfo.CAMERA_FACING_FRONT);
-		camera.setDisplayOrientation(0);
-		camera.setPreviewCallback(this);
+		try{
+			camera = CameraInterface.getInstance().doOpenCamera(null, CameraInfo.CAMERA_FACING_FRONT);
+			camera.setDisplayOrientation(180);
+			Camera.Parameters parameters = camera.getParameters();
+			List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+			//List<Camera.Size> supportedPictureSizes = parameters.getSupportedPictureSizes();
+			for (int i = 0; i < supportedPreviewSizes.size(); i++) {
+				Log.d("TT", supportedPreviewSizes.get(i).width+" "+supportedPreviewSizes.get(i).height);
+			}
+			camera.setPreviewCallback(this);
+		}catch (Exception e){
 
+		}
 
 	}
 
@@ -94,8 +130,12 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 		// TODO Auto-generated method stub
 		Log.i(TAG, "surfaceChanged...");
 
+		try{
+			CameraInterface.getInstance().doStartPreview(mSurfaceHolder, 1.333f);
 
-		CameraInterface.getInstance().doStartPreview(mSurfaceHolder, 1.333f);
+		}catch (Exception e){
+
+		}
 
 	}
 
@@ -143,7 +183,9 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 		return test;
 	}
 
-	int num = 0;
+	public static void startTimeToShow(){
+
+	}
 
 	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 	@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
@@ -151,64 +193,12 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		faceData = data;
 		if (data != null) {
-			test = Util.strToArr(JniTool.faceDetectCamera(data, 800, 600));
+			test = Util.strToArr(JniTool.faceDetectCamera(data, Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT));
 //			if(CameraActivity.faceView != null){
 //				CameraActivity.faceView.setRects(CameraActivity.getRect(new Rect((test[1])*3/2, (test[2])*3/2, ((test[1]+test[3]))*3/2,((test[2]+test[4]))*3/2)));
 //			}
-			Log.d("Test", test[0]+"------------------"+ISSHOWINGMOVIE);
-//			if(test[0] == 0){
-//				if(num >= 300 && !ISSHOWINGMOVIE){
-//					Log.d("Test", "zhi xing le a");
-//					num = 0;
-//					setAlpha(0);
-//					Log.d("TT", getWidth()+"");
-//					CameraActivity.sv_movie.setTranslationX(0f);
-//					ISSHOWINGMOVIE = true;
-//					CameraActivity.ll_panel.setVisibility(View.INVISIBLE);
-//					CameraActivity.showMovie();
-//				} else {
-//					Log.d("Test", "num ' value is "+num);
-//					num++;
-//				}
-//
-//
-//
-//
-////			} else if(test[0] == 1 && ISSHOWINGMOVIE){
-////				Log.d("Test", "gai hui lai le********************************");
-////				CameraActivity.stopMovie();
-////				CameraActivity.sv_movie.setTranslationX(-1280f);
-////				CameraActivity.ll_panel.setVisibility(View.VISIBLE);
-////				setAlpha(1);
-////				ISSHOWINGMOVIE = false;
-//			}
+			Log.d("NUM", test[0]+"------------------"+ISSHOWINGMOVIE);
 		}
 
-//		image = new YuvImage(data, 17, 800, 600, null);
-//		Bitmap bitmap1 = BitmapFactory.decodeByteArray(image.getYuvData(), 0, image.getYuvData().length);
-//		Log.d("Test", (bitmap1 == null)+"");
-//		image.getYuvData();
-//		out = new ByteArrayOutputStream();
-//        image.compressToJpeg(area, 100, out);
-//        Bitmap bitmap = BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size());
-//
-//        Util.saveBitmap(bitmap, "zhufu.jpg");
-//
-//        bm = Bitmap.createBitmap(bitmap, 0, 0,800, 600, matrix, true);
-
-
 	}
-
-//	Camera.Parameters params = camera.getParameters();
-//	int w = params.getPreviewSize().width;
-//	int h = params.getPreviewSize().height;
-//	int format = params.getPreviewFormat();
-//	YuvImage image = new YuvImage(data, format, w, h, null);
-//	ByteArrayOutputStream out = new ByteArrayOutputStream();
-//	Rect area = new Rect(0, 0, w, h);
-//	image.compressToJpeg(area, 100, out);
-//	Bitmap bitmap = BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size());
-//	Matrix matrix = new Matrix();
-//	matrix.postRotate(270);
-//	bm = Bitmap.createBitmap(bitmap, 0, 0,w, h, matrix, true);
 }

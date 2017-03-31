@@ -80,6 +80,19 @@
             </intent-filter>
         </receiver>
 
+        <service
+            android:name="org.yanzi.activity.MyAccessibilityService"
+            android:label="我的智能安装"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
         <activity
             android:name="org.yanzi.activity.StartActivity"
             android:screenOrientation="landscape"

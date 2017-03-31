@@ -70,47 +70,53 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/ll_info"
-                android:visibility="gone"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="5"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_margin="10dp"
-                    android:scaleX="1.12"
-                    android:scaleY="1.12"
-                    android:id="@+id/iv_face"
+                android:layout_weight="5">
+                <LinearLayout
+                    android:id="@+id/ll_info"
                     android:visibility="gone"
-                    />
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
 
-                <ImageView
-                    android:layout_marginTop="20dp"
-                    android:layout_marginLeft="10dp"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:id="@+id/iv_ic"
-                    android:src="@drawable/face"
-                    android:visibility="invisible"
-                    />
 
-                <ImageView
-                    android:layout_margin="20dp"
-                    android:layout_marginLeft="10dp"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:id="@+id/iv_mid"
-                    android:src="@drawable/face"
-                    />
+                    <ImageView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_margin="10dp"
+                        android:scaleX="1.12"
+                        android:scaleY="1.12"
+                        android:id="@+id/iv_face"
+                        android:visibility="gone"
+                        />
 
-            </LinearLayout>
+                    <ImageView
+                        android:layout_marginTop="20dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:id="@+id/iv_ic"
+                        android:src="@drawable/face"
+                        android:visibility="invisible"
+                        />
+
+                    <ImageView
+                        android:layout_margin="20dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:id="@+id/iv_mid"
+                        android:src="@drawable/face"
+                        />
+
+                </LinearLayout>
+            </FrameLayout>
+
 
             <TextView
                 android:textColor="#ffffff"
@@ -181,6 +187,32 @@
             android:id="@+id/faceView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <Button
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="测试自动更新"
+            android:onClick="update"
+            android:layout_gravity="bottom|right"
+            />
+
+        <TextView
+            android:id="@+id/tv_movie"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="25sp"
+            android:layout_gravity="right|top"
+            android:layout_margin="15dp"
+            android:textColor="#0000ff"/>
+
+        <TextView
+            android:textColor="#00ff00"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/tv_test"
+            android:layout_gravity="center"
+            android:textSize="20sp"/>
 
     </FrameLayout>
 
