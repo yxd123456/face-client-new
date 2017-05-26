@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="sdtapi">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/app/libs/sdtapi.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
